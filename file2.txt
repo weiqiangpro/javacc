@@ -1,0 +1,41 @@
+void as(int a){
+
+}
+void main(){
+	int a=5,b=2;
+	int c;
+	
+	as(1);
+	
+	c=a+b;
+	b=b+1;
+	
+	if(a<2){
+		a=a+1;
+	}
+	else if(a>6)
+	a=a+1;
+	else
+	a=a+1;
+	
+	while(b<20 && a>10){
+	b=b+a;
+	}
+	
+	do{
+	c=b+c;
+	}while(c<20)
+	
+	
+	switch (a1){
+	case a:
+	a=a+1;
+	break;
+	}
+	
+for(;;i++){
+	a=a+1;}
+	i++;
+	++i;
+	i+=1;
+}
