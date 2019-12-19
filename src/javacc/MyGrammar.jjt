@@ -10,22 +10,25 @@ PARSER_BEGIN(MyGrammar)
 package javacc;
 import java.io.FileInputStream;
 import util.*;
+
 public class MyGrammar
 {
-  
-   public QTList qtList = new QTList();
+  public SwitchTable switchTable = new SwitchTable();
+  public  FunTable tableList = new FunTable();
+  public Table tables = new Table();
+  public QTList qtList = new QTList();
   public static void main(String args []) throws Exception{
-     FileInputStream fis = new FileInputStream("file.txt");
-    MyGrammar parser = new MyGrammar(fis);
+  FileInputStream fis = new FileInputStream("file.txt");
+  MyGrammar parser = new MyGrammar(fis);
     try{
       SimpleNode n = parser.Start();
-//     String str = n.dump();
-//      System.out.println(str);
-//      System.out.println("Thank you.");
+     String str = n.dump();
+    System.out.println(str);
+      System.out.println("Thank you.");
        parser.qtList.printQTTable();
-   
+   		parser.tableList.print();
     }
-    catch (Exception e){
+    catch (RuntimeException e){
       e.printStackTrace();
     }
    }
@@ -74,7 +77,6 @@ TOKEN : /* KEYWORDS */
 | < VOID : "void" >
 | < IF : "if" >
 | < ELSE : "else" >
-| < ELSEIF : "else if" >
 | < WHILE : "while" >
 | < FOR : "for" >
 | < DO : "do">
@@ -146,66 +148,155 @@ SimpleNode Start() :
 }
 //程序入口
 void program() :
-{}
+{
+  String type;
+}
 { 
     (
       LOOKAHEAD(2) 
       functionstatement()
+    
      )*
-  StartType() 
-  < MAIN > < SBRACL > < SBRACR >
+  type =StartType() 
+  < MAIN >
+  < SBRACL >
+  < SBRACR >
   statement()
-
+  {
+ 	  if(tables.tokens.size() >0)
+ 	  	  tables.name= "main";
+ 	  tables.type=type;
+ 	  tableList.add(tables);
+ 	  tables =new Table();
+ 	}
 }
-void StartType():
-{}
+String StartType():
 {
-  < INT >| < VOID >
+Token type;
 }
-void FunType():
-{}
 {
-  < INT >| < FLOAT >| < BOOL >| < CHAR > |< DOUBLE >| < VOID >
+ (   type=  < INT >
+   |type=  < VOID >)
+   {
+       return type.image;
+   }
+}
+String  FunType():
+{
+Token type;
+}
+{
+  (      type= < INT >
+    | type=< FLOAT >
+    | type= < BOOL >
+    | type= < CHAR >
+    | type=< DOUBLE >
+    | type= < VOID >)
+    {
+      return type.image;
+    }
 }
 //函数声明
 void functionstatement(): 
-{}
 {
-  FunType()
-  Identifier() 
-  "(" parameterstatement() ")"
+String type;
+String name;
+int num;
+  Variable v = new Variable();
+}
+{
+  type = FunType()
+  name = Identifier(v) 
+  "("num = parameterstatement() ")"
   statement()
+     {
+ 	  if(tables.tokens.size() >0)
+ 	  tables.name= name;
+ 	  tables.type=type;
+ 	  tables.num=num;
+ 	  tables.line=v.line;
+ 	  tables.col=v.col;
+ 	  tableList.add(tables);
+ 	  tables =new Table();
+ 	}
 }
 //函数声明的参数
-void parameterstatement():
-{}
+int parameterstatement():
 {
-  (type() Identifier() (",")?  )*
+  Variable v = new Variable();
+ int num=0;
+ String type;
+ String image;
+ }
+{
+  (
+    type = type()
+    image = Identifier(v)
+    (",")?
+  {
+    num++;
+    v.image = image;
+    v.type = type;
+    tables.add(v);
+    }
+    )*
+ {
+    return num;
+ }
 }
 //调用的函数
 void function(): 
-{}
 {
-  Identifier() 
-  "(" parameter() ")" ";"
+  String fun;
+  int num;
+  Variable v = new Variable();
+}
+{
+  fun = Identifier(v)
+  {
+    
+  }
+  "(" num = parameter() ")" ";"
+  {
+    v.image = fun;
+    tableList.con(v,num);
+  }
 }
 //调用函数的参数
-void parameter():
-{}
+int parameter():
 {
-  ( (Identifier()|Integer()) (",")?  )*
+ int num=0;
+ Variable v = new Variable();
+ String image;
+}
+{
+  (
+    (image = Identifier(v)
+     |image = Integer(v)
+    )
+    (",")?
+  {
+    num++; v.image = image;
+    tables.con(v);
+     v = new Variable();
+    }
+    )*
+  {
+   return num;
+  }
 }
 //代码块
 void statement():
 {}
 {
-  statementBlock() | ("{"  (statement())*"}")
-}	
+  statementBlock()
+  | ("{"  (statement())*"}")
+}
 //if while 顺序语句
 void statementBlock():
 {}
 { 
-  ifStatement()
+   ifStatement()
   |SequencestateStatement()
   |whileStatement()
   |SwitchStatement()
@@ -216,84 +307,153 @@ void SequencestateStatement():
 { }
 {
  
-  (stateStatement() < SEMI >)
+    (stateStatement() < SEMI >)
   | LOOKAHEAD(2) (calStatement() < SEMI >)
-  |  LOOKAHEAD(2) function()
+  | LOOKAHEAD(2) function()
   | (assignStatement() < SEMI >)
 }
-
 //声明语句
 void stateStatement():
-{}
 {
-  type() stateStatementBlok()(< COM > stateStatementBlok())*  
+String type;
+}
+{
+  type = type()
+  stateStatementBlok(type)
+  (< COM > stateStatementBlok(type))*
+  
 }
 // 代码块
-void stateStatementBlok():
+void stateStatementBlok(String type):
 {
-String e1,e2;
+String e1,e2=null;
+ Variable v = new Variable();
 }
 {
-  e1 = Identifier() [ < EQU >  e2 = Expression()
+  e1 = Identifier(v)
+   [ < EQU >  e2 = Expression()
   {
      QTInfo info = new QTInfo("=", e2, "_", e1);
-      qtList.addQTInfo(info);
-  }]
+     qtList.addQTInfo(info);
+  }
+  ]
+  {
+    v.type = type;
+    v.image = e1;
+    tables.add(v);
+  }
 }
-
 //声明的类型
-void type():
-{}
+String  type():
 {
-  < INT >| < FLOAT >| < BOOL >| < CHAR > |< DOUBLE >
+  Token t;
+}
+{
+  (      t = < INT >
+    | t =< FLOAT >
+    | t =< BOOL >
+    | t =< CHAR >
+    | t = < DOUBLE >)
+    {
+      return t.image;
+    }
 }
 //赋值
 void calStatement():
 {
 String e1,e2;
+Variable v = new Variable();
 }
 {
- e1 = Identifier()  < EQU > e2 =  Expression()  
+ e1 = Identifier(v)
+ < EQU >
+  e2 =  Expression()  
    {
      QTInfo info = new QTInfo("=", e2, "_", e1);
       qtList.addQTInfo(info);
+      v.image=e1;
+      tables.con(v);
   }
 }
 //Swith
 void SwitchStatement():
-{}
 {
-  "switch" "("  Identifier() ")" "{" CaseStatement()  "}" 
+  
+  String a;
+ }
+{
+  {
+  switchTable = new SwitchTable();
+  }
+  "switch"
+  "("  a= Identifier(null) ")"
+   "{" CaseStatement(a)  "}" 
 }
 //case
-void CaseStatement():
-{}
+void CaseStatement(String str):
+{
+  ConditionValue c = new ConditionValue();
+  ConditionValue cbreak = new ConditionValue();
+  String s;
+  boolean haveBreak = false;
+  boolean haveCase = false;
+  Variable v = new Variable();
+}
 {
 (
-   "case" Identifier() ":"
-   (statementBlock())*
-   ("break" ";")?
+  (
+   {
+     haveCase = true;
+   }     "case" (s = Identifier(v) | s = Integer(v)) ":"
+   {
+      v.image = s;
+      tables.con(v);
+      switchTable.add(v);
+      v = new Variable();
+      QTInfo info1 = new QTInfo("J=", s, str,QTInfo.size+3);
+      qtList.addQTInfo(info1);
+      QTInfo info2 = new QTInfo("J", "_","_","F");
+      qtList.addQTInfo(info2);
+      c.mergeFalse(info2);
+   }
+ 	statement()
+   ( 
+     "break" ";"
+   {
+     QTInfo info3 = new QTInfo("J", "_", "_","F");
+     qtList.addQTInfo(info3);
+     cbreak.mergeFalse(info3);
+ 	 c.backpatchFalseChain(QTInfo.size +1);
+     c = new ConditionValue();
+    }
+    )?
+   )
  )*
- 
- ("default" ":" (statementBlock())* ("break" ";")? )?
-   
+ 	(
+      "default" ":"
+      (statementBlock())*
+      ("break" ";")?
+    )?
+   {
+     if(cbreak!=null)
+	 cbreak.backpatchFalseChain(QTInfo.size +1);
+   } 
 }
 //i++ ++i i+=
-void assignStatement():
+String assignStatement():
 {
 Token e1;
 String e2;
 String op;
  }
 {
-  (
+(    (
     (
       "++" { op = "+";}
     | "--" { op = "-";}
     )
    e1 =  < IDENTIFIER>
    {
-
       qtList.addQTInfo(new QTInfo(op, e1.image, "1", e1.image));
     }
   )
@@ -301,7 +461,8 @@ String op;
   (
    e1=   < IDENTIFIER>
     (
-      (op = AssignRop() e2= Expression())
+      (op = AssignRop()
+       e2= Expression())
       {
  		qtList.addQTInfo(new QTInfo(op, e1.image, e2, e1.image));
       }
@@ -314,6 +475,10 @@ String op;
         }
     )
   )
+)
+  {
+    return e1.image;
+  }
 }
 //符号
 String AssignRop():
@@ -336,21 +501,53 @@ String AssignRop():
 //FOR语句
 void ForStatement():
 {
+  ConditionValue c = null;
+  String e1;
+  int a1=-1,a2=-1;
+  int t;
 }
 {
   "for" "("
   (	
     stateStatement()
-  |  calStatement()
+  | calStatement()
   )*
   ";"
-(condition())?
+(
+  c = condition()
+  )?
   ";"
+  
+  {
+    a2 = QTInfo.size-1;
+    a1 =  QTInfo.size+1;
+    if(c==null)
+    qtList.addQTInfo(new QTInfo("J1", "_", "_", "_"));
+    t = QTInfo.size-1;
+  }
     (
-      [","] assignStatement()
+      [","]
+      (
+          LOOKAHEAD(3) assignStatement()
+        | LOOKAHEAD(3) calStatement() )
     )*
   ")"
+  { 
+    if(c!=null)
+       c.backpatchTrueChain(QTInfo.size+2);
+    else {
+       a1++;
+       a2=a2+2;
+       qtList.QTList.get(t).setResult(QTInfo.size+2);
+    }
+    qtList.addQTInfo(new QTInfo("J2", "_", "_", a2));
+  }
   statement()
+  {
+    if(c!=null) 
+      c.backpatchFalseChain(QTInfo.size + 2);
+    qtList.addQTInfo(new QTInfo("J3", "_", "_", a1));
+  }
 }
 //if语句
 void ifStatement():
@@ -361,52 +558,22 @@ void ifStatement():
   int falseNum = -1;
 }
 {
-  < IF>   < SBRACL >
+  < IF>  
+  < SBRACL >
  c1 = condition()
    {
     c1.backpatchTrueChain(QTInfo.size + 1);
   }
     < SBRACR >
       statement()
-   (
-     LOOKAHEAD(1)
-     {
-      QTInfo info = new QTInfo("J", "_", "_", "T");
-      qtList.addQTInfo(info);
-      c3.mergeTrue(info);
-      }
-	"else if"
-	< SBRACL >
-	{
-	  c1.backpatchFalseChain(QTInfo.size + 1);
-	}
-  	c2 = condition()
-   {
-    c2.backpatchTrueChain(QTInfo.size + 1);
-    c1 = c2;
+  {
+    c1.backpatchFalseChain(QTInfo.size +1);
   }
-    < SBRACR >
-     statement()
-   )*
     (
-     LOOKAHEAD(1)
-      {
-      QTInfo info = new QTInfo("J", "_", "_", "T");
-      qtList.addQTInfo(info);
-      c3.mergeTrue(info);
-      }
+     LOOKAHEAD(1)            	
 	"else"
-	{
-  c1.backpatchFalseChain(QTInfo.size + 1);
-	}
      statement()
    )?
-      {
-       if(c3.trueChain.size()!=0)
-       c3.backpatchTrueChain(QTInfo.size + 1);
-       else
-         c1.backpatchFalseChain(QTInfo.size + 1);
-      }
 }
 //条件
 ConditionValue condition():
@@ -432,9 +599,11 @@ ConditionValue OrBoolExpression():
   }
   (
     "||"
+    {
+     c1.backpatchFalseChain(QTInfo.size+1);
+    }
    c2 = AndBooleanExpression()
-   {
-     c1.backpatchFalseChain(QTInfo.size + 1);
+   { 
       c2.mergeTrue(c1);
       c1 = c2;
    }
@@ -456,9 +625,11 @@ ConditionValue AndBooleanExpression():
   }
   (
   "&&"
+  {
+     c1.backpatchTrueChain(QTInfo.size + 1);
+  }
   c2 = NoBooleanExpression()
     {
-     c1.backpatchTrueChain(QTInfo.size + 1);
       c2.mergeFalse(c1);
       c1 = c2;
    }
@@ -475,7 +646,9 @@ ConditionValue  NoBooleanExpression():
   boolean flag = true;
 }
 {
-  ("!" { flag = false; })?
+  ("!"
+  { flag = false; }
+  )?
   c1 = BoolExpression()
   {
      if (!flag){
@@ -511,20 +684,20 @@ ConditionValue  BoolExpression():
       QTInfo info1 = new QTInfo("J" + op, e1, e2, "T");
       qtList.addQTInfo(info1);
       c.mergeTrue(info1);
-       QTInfo info2 = new QTInfo("J", "_", "_", "F");
-    qtList.addQTInfo(info2);
-    c.mergeFalse(info2);
-    return c;
+      QTInfo info2 = new QTInfo("J", "_", "_", "F");
+      qtList.addQTInfo(info2);
+      c.mergeFalse(info2);
+      return c;
     }
   )?
   {
       QTInfo info1 = new QTInfo("Jnz", e1,"_", "T");
       qtList.addQTInfo(info1);
       c.mergeTrue(info1);
-       QTInfo info2 = new QTInfo("J", "_", "_", "F");
-    qtList.addQTInfo(info2);
-    c.mergeFalse(info2);
-    return c;
+      QTInfo info2 = new QTInfo("J", "_", "_", "F");
+      qtList.addQTInfo(info2);
+      c.mergeFalse(info2);
+      return c;
     }
 }
 // while语句
@@ -540,7 +713,7 @@ void WhileStatement1():
   int quad;
 }
 {
-< WHILE >
+ < WHILE >
  < SBRACL >
  {
     quad = QTInfo.size + 1;
@@ -550,13 +723,11 @@ void WhileStatement1():
    chain.backpatchTrueChain(QTInfo.size + 1);
   }
   < SBRACR >
-  < BBRACL >
    statement()
-   {
+  {
     qtList.addQTInfo(new QTInfo("J", "_", "_", quad));
     chain.backpatchFalseChain(QTInfo.size + 1);
   }
-   < BBRACR >
 }
 //do while
 void WhileStatement2():
@@ -565,27 +736,19 @@ void WhileStatement2():
   int quad;
 }
 {
-  "do"
-    
+  "do"  
  {
     quad = QTInfo.size + 1;
   }
    statement()
-   
-  
-< WHILE >
+ < WHILE >
  < SBRACL >
-
  chain = condition()
  {
-   
-//    quad
     chain.backpatchFalseChain(QTInfo.size + 1);
-  
-   chain.backpatchTrueChain(quad);
+    chain.backpatchTrueChain(quad);
   }
   < SBRACR >
-
 }
 //表达式
 String Expression() :
@@ -663,37 +826,47 @@ String UnaryExpression() :
 {
 	String str = null;
 	Token t = null;
+	Variable v = new Variable();
 }
 {
  (
     "(" str = Expression() ")"
-| str =  Identifier()
-| str =  Integer()
-)
-
- {
+    | str =  Identifier(v)
+	{
+  		v.image = str;
+ 	 	tables.con(v);
+	}
+	| str =  Integer(null)
+  )
+  {
     return str;
   }
 }
 
-String Identifier() :
+String Identifier(Variable v) :
 {
 	Token t;
 }
 {
  t=  < IDENTIFIER >
  {
+   if(v!=null) { 
+   	  v.line = t.beginLine;
+   v.col = t.beginColumn; }
    return t.image;
  }
 }
 
-String  Integer() :
+String  Integer(Variable v) :
 {
   Token t;
 }
 {
  t = < INTEGER_LITERAL >
   {
+    if(v!=null) { 
+       v.line = t.beginLine;
+       v.col = t.beginColumn; }
     return t.image;
   }
 }

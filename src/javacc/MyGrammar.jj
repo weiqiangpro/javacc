@@ -11,25 +11,28 @@ PARSER_BEGIN(MyGrammar)
 package javacc;
 import java.io.FileInputStream;
 import util.*;
+
 public class MyGrammar/*@bgen(jjtree)*/implements MyGrammarTreeConstants/*@egen*/
 {/*@bgen(jjtree)*/
   protected JJTMyGrammarState jjtree = new JJTMyGrammarState();
 
 /*@egen*/
-  
-   public QTList qtList = new QTList();
+  public SwitchTable switchTable = new SwitchTable();
+  public  FunTable tableList = new FunTable();
+  public Table tables = new Table();
+  public QTList qtList = new QTList();
   public static void main(String args []) throws Exception{
-     FileInputStream fis = new FileInputStream("file.txt");
-    MyGrammar parser = new MyGrammar(fis);
+  FileInputStream fis = new FileInputStream("file.txt");
+  MyGrammar parser = new MyGrammar(fis);
     try{
       SimpleNode n = parser.Start();
-//     String str = n.dump();
-//      System.out.println(str);
-//      System.out.println("Thank you.");
+     String str = n.dump();
+    System.out.println(str);
+      System.out.println("Thank you.");
        parser.qtList.printQTTable();
-   
+   		parser.tableList.print();
     }
-    catch (Exception e){
+    catch (RuntimeException e){
       e.printStackTrace();
     }
    }
@@ -78,7 +81,6 @@ TOKEN : /* KEYWORDS */
 | < VOID : "void" >
 | < IF : "if" >
 | < ELSE : "else" >
-| < ELSEIF : "else if" >
 | < WHILE : "while" >
 | < FOR : "for" >
 | < DO : "do">
@@ -185,17 +187,34 @@ void program() :
   SimpleNode jjtn000 = new SimpleNode(JJTPROGRAM);
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+/*@egen*/
+  String type;
+}
 {/*@bgen(jjtree) program */
     try {
 /*@egen*/ 
     (
       LOOKAHEAD(2) 
       functionstatement()
+    
      )*
-  StartType() 
-  < MAIN > < SBRACL > < SBRACR >
+  type =StartType() 
+  < MAIN >
+  < SBRACL >
+  < SBRACR >
   statement()/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
+/*@egen*/
+  {
+ 	  if(tables.tokens.size() >0)
+ 	  	  tables.name= "main";
+ 	  tables.type=type;
+ 	  tableList.add(tables);
+ 	  tables =new Table();
+ 	}/*@bgen(jjtree)*/
     } catch (Throwable jjte000) {
       if (jjtc000) {
         jjtree.clearNodeScope(jjtn000);
@@ -216,35 +235,60 @@ void program() :
       }
     }
 /*@egen*/
-
 }
-void StartType():
+String StartType():
 {/*@bgen(jjtree) StartType */
-  SimpleNode jjtn000 = new SimpleNode(JJTSTARTTYPE);
-  boolean jjtc000 = true;
-  jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+SimpleNode jjtn000 = new SimpleNode(JJTSTARTTYPE);
+boolean jjtc000 = true;
+jjtree.openNodeScope(jjtn000);
+/*@egen*/
+Token type;
+}
 {/*@bgen(jjtree) StartType */
+ try {
+/*@egen*/
+ (   type=  < INT >
+   |type=  < VOID >)/*@bgen(jjtree)*/
+   {
+     jjtree.closeNodeScope(jjtn000, true);
+     jjtc000 = false;
+   }
+/*@egen*/
+   {
+       return type.image;
+   }/*@bgen(jjtree)*/
+ } finally {
+   if (jjtc000) {
+     jjtree.closeNodeScope(jjtn000, true);
+   }
+ }
+/*@egen*/
+}
+String  FunType():
+{/*@bgen(jjtree) FunType */
+SimpleNode jjtn000 = new SimpleNode(JJTFUNTYPE);
+boolean jjtc000 = true;
+jjtree.openNodeScope(jjtn000);
+/*@egen*/
+Token type;
+}
+{/*@bgen(jjtree) FunType */
   try {
 /*@egen*/
-  < INT >| < VOID >/*@bgen(jjtree)*/
-  } finally {
-    if (jjtc000) {
+  (      type= < INT >
+    | type=< FLOAT >
+    | type= < BOOL >
+    | type= < CHAR >
+    | type=< DOUBLE >
+    | type= < VOID >)/*@bgen(jjtree)*/
+    {
       jjtree.closeNodeScope(jjtn000, true);
+      jjtc000 = false;
     }
-  }
 /*@egen*/
-}
-void FunType():
-{/*@bgen(jjtree) FunType */
-  SimpleNode jjtn000 = new SimpleNode(JJTFUNTYPE);
-  boolean jjtc000 = true;
-  jjtree.openNodeScope(jjtn000);
-/*@egen*/}
-{/*@bgen(jjtree) FunType */
-  try {
-/*@egen*/
-  < INT >| < FLOAT >| < BOOL >| < CHAR > |< DOUBLE >| < VOID >/*@bgen(jjtree)*/
+    {
+      return type.image;
+    }/*@bgen(jjtree)*/
   } finally {
     if (jjtc000) {
       jjtree.closeNodeScope(jjtn000, true);
@@ -255,17 +299,37 @@ void FunType():
 //\u9351\u82a5\u669f\u6fb9\u7248\u69d1
 void functionstatement(): 
 {/*@bgen(jjtree) functionstatement */
-  SimpleNode jjtn000 = new SimpleNode(JJTFUNCTIONSTATEMENT);
-  boolean jjtc000 = true;
-  jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+SimpleNode jjtn000 = new SimpleNode(JJTFUNCTIONSTATEMENT);
+boolean jjtc000 = true;
+jjtree.openNodeScope(jjtn000);
+/*@egen*/
+String type;
+String name;
+int num;
+  Variable v = new Variable();
+}
 {/*@bgen(jjtree) functionstatement */
   try {
 /*@egen*/
-  FunType()
-  Identifier() 
-  "(" parameterstatement() ")"
+  type = FunType()
+  name = Identifier(v) 
+  "("num = parameterstatement() ")"
   statement()/*@bgen(jjtree)*/
+     {
+       jjtree.closeNodeScope(jjtn000, true);
+       jjtc000 = false;
+     }
+/*@egen*/
+     {
+ 	  if(tables.tokens.size() >0)
+ 	  tables.name= name;
+ 	  tables.type=type;
+ 	  tables.num=num;
+ 	  tables.line=v.line;
+ 	  tables.col=v.col;
+ 	  tableList.add(tables);
+ 	  tables =new Table();
+ 	}/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -288,16 +352,39 @@ void functionstatement():
 /*@egen*/
 }
 //\u9351\u82a5\u669f\u6fb9\u7248\u69d1\u9428\u52eb\u5f2c\u93c1\ufffd
-void parameterstatement():
+int parameterstatement():
 {/*@bgen(jjtree) parameterstatement */
   SimpleNode jjtn000 = new SimpleNode(JJTPARAMETERSTATEMENT);
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+/*@egen*/
+  Variable v = new Variable();
+ int num=0;
+ String type;
+ String image;
+ }
 {/*@bgen(jjtree) parameterstatement */
   try {
 /*@egen*/
-  (type() Identifier() (",")?  )*/*@bgen(jjtree)*/
+  (
+    type = type()
+    image = Identifier(v)
+    (",")?
+  {
+    num++;
+    v.image = image;
+    v.type = type;
+    tables.add(v);
+    }
+    )*/*@bgen(jjtree)*/
+ {
+   jjtree.closeNodeScope(jjtn000, true);
+   jjtc000 = false;
+ }
+/*@egen*/
+ {
+    return num;
+ }/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -325,12 +412,28 @@ void function():
   SimpleNode jjtn000 = new SimpleNode(JJTFUNCTION);
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+/*@egen*/
+  String fun;
+  int num;
+  Variable v = new Variable();
+}
 {/*@bgen(jjtree) function */
   try {
 /*@egen*/
-  Identifier() 
-  "(" parameter() ")" ";"/*@bgen(jjtree)*/
+  fun = Identifier(v)
+  {
+    
+  }
+  "(" num = parameter() ")" ";"/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
+/*@egen*/
+  {
+    v.image = fun;
+    tableList.con(v,num);
+  }/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -353,16 +456,38 @@ void function():
 /*@egen*/
 }
 //\u748b\u51aa\u6564\u9351\u82a5\u669f\u9428\u52eb\u5f2c\u93c1\ufffd
-void parameter():
+int parameter():
 {/*@bgen(jjtree) parameter */
-  SimpleNode jjtn000 = new SimpleNode(JJTPARAMETER);
-  boolean jjtc000 = true;
-  jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+ SimpleNode jjtn000 = new SimpleNode(JJTPARAMETER);
+ boolean jjtc000 = true;
+ jjtree.openNodeScope(jjtn000);
+/*@egen*/
+ int num=0;
+ Variable v = new Variable();
+ String image;
+}
 {/*@bgen(jjtree) parameter */
   try {
 /*@egen*/
-  ( (Identifier()|Integer()) (",")?  )*/*@bgen(jjtree)*/
+  (
+    (image = Identifier(v)
+     |image = Integer(v)
+    )
+    (",")?
+  {
+    num++; v.image = image;
+    tables.con(v);
+     v = new Variable();
+    }
+    )*/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
+/*@egen*/
+  {
+   return num;
+  }/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -394,7 +519,8 @@ void statement():
 {/*@bgen(jjtree) statement */
   try {
 /*@egen*/
-  statementBlock() | ("{"  (statement())*"}")/*@bgen(jjtree)*/
+  statementBlock()
+  | ("{"  (statement())*"}")/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -415,7 +541,7 @@ void statement():
     }
   }
 /*@egen*/
-}	
+}
 //if while \u6924\u54c4\u7c2d\u7487\ue15e\u5f5e
 void statementBlock():
 {/*@bgen(jjtree) statementBlock */
@@ -424,32 +550,32 @@ void statementBlock():
   jjtree.openNodeScope(jjtn000);
 /*@egen*/}
 {/*@bgen(jjtree) statementBlock */
-  try {
+   try {
 /*@egen*/ 
-  ifStatement()
+   ifStatement()
   |SequencestateStatement()
   |whileStatement()
   |SwitchStatement()
   |ForStatement()/*@bgen(jjtree)*/
-  } catch (Throwable jjte000) {
-    if (jjtc000) {
-      jjtree.clearNodeScope(jjtn000);
-      jjtc000 = false;
-    } else {
-      jjtree.popNode();
-    }
-    if (jjte000 instanceof RuntimeException) {
-      throw (RuntimeException)jjte000;
-    }
-    if (jjte000 instanceof ParseException) {
-      throw (ParseException)jjte000;
-    }
-    throw (Error)jjte000;
-  } finally {
-    if (jjtc000) {
-      jjtree.closeNodeScope(jjtn000, true);
-    }
-  }
+   } catch (Throwable jjte000) {
+     if (jjtc000) {
+       jjtree.clearNodeScope(jjtn000);
+       jjtc000 = false;
+     } else {
+       jjtree.popNode();
+     }
+     if (jjte000 instanceof RuntimeException) {
+       throw (RuntimeException)jjte000;
+     }
+     if (jjte000 instanceof ParseException) {
+       throw (ParseException)jjte000;
+     }
+     throw (Error)jjte000;
+   } finally {
+     if (jjtc000) {
+       jjtree.closeNodeScope(jjtn000, true);
+     }
+   }
 /*@egen*/
 }
 //\u6924\u54c4\u7c2d\u7487\ue15e\u5f5e
@@ -460,46 +586,49 @@ void SequencestateStatement():
   jjtree.openNodeScope(jjtn000);
 /*@egen*/ }
 {/*@bgen(jjtree) SequencestateStatement */
-  try {
+    try {
 /*@egen*/
  
-  (stateStatement() < SEMI >)
+    (stateStatement() < SEMI >)
   | LOOKAHEAD(2) (calStatement() < SEMI >)
-  |  LOOKAHEAD(2) function()
+  | LOOKAHEAD(2) function()
   | (assignStatement() < SEMI >)/*@bgen(jjtree)*/
-  } catch (Throwable jjte000) {
-    if (jjtc000) {
-      jjtree.clearNodeScope(jjtn000);
-      jjtc000 = false;
-    } else {
-      jjtree.popNode();
+    } catch (Throwable jjte000) {
+      if (jjtc000) {
+        jjtree.clearNodeScope(jjtn000);
+        jjtc000 = false;
+      } else {
+        jjtree.popNode();
+      }
+      if (jjte000 instanceof RuntimeException) {
+        throw (RuntimeException)jjte000;
+      }
+      if (jjte000 instanceof ParseException) {
+        throw (ParseException)jjte000;
+      }
+      throw (Error)jjte000;
+    } finally {
+      if (jjtc000) {
+        jjtree.closeNodeScope(jjtn000, true);
+      }
     }
-    if (jjte000 instanceof RuntimeException) {
-      throw (RuntimeException)jjte000;
-    }
-    if (jjte000 instanceof ParseException) {
-      throw (ParseException)jjte000;
-    }
-    throw (Error)jjte000;
-  } finally {
-    if (jjtc000) {
-      jjtree.closeNodeScope(jjtn000, true);
-    }
-  }
 /*@egen*/
 }
-
 //\u6fb9\u7248\u69d1\u7487\ue15e\u5f5e
 void stateStatement():
 {/*@bgen(jjtree) stateStatement */
-  SimpleNode jjtn000 = new SimpleNode(JJTSTATESTATEMENT);
-  boolean jjtc000 = true;
-  jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+SimpleNode jjtn000 = new SimpleNode(JJTSTATESTATEMENT);
+boolean jjtc000 = true;
+jjtree.openNodeScope(jjtn000);
+/*@egen*/
+String type;
+}
 {/*@bgen(jjtree) stateStatement */
   try {
 /*@egen*/
-  type() stateStatementBlok()(< COM > stateStatementBlok())*/*@bgen(jjtree)*/
+  type = type()
+  stateStatementBlok(type)
+  (< COM > stateStatementBlok(type))*/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -519,25 +648,39 @@ void stateStatement():
       jjtree.closeNodeScope(jjtn000, true);
     }
   }
-/*@egen*/  
+/*@egen*/
+  
 }
 // \u6d60\uff47\u721c\u9367\ufffd
-void stateStatementBlok():
+void stateStatementBlok(String type):
 {/*@bgen(jjtree) stateStatementBlok */
 SimpleNode jjtn000 = new SimpleNode(JJTSTATESTATEMENTBLOK);
 boolean jjtc000 = true;
 jjtree.openNodeScope(jjtn000);
 /*@egen*/
-String e1,e2;
+String e1,e2=null;
+ Variable v = new Variable();
 }
 {/*@bgen(jjtree) stateStatementBlok */
   try {
 /*@egen*/
-  e1 = Identifier() [ < EQU >  e2 = Expression()
+  e1 = Identifier(v)
+   [ < EQU >  e2 = Expression()
   {
      QTInfo info = new QTInfo("=", e2, "_", e1);
-      qtList.addQTInfo(info);
-  }]/*@bgen(jjtree)*/
+     qtList.addQTInfo(info);
+  }
+  ]/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
+/*@egen*/
+  {
+    v.type = type;
+    v.image = e1;
+    tables.add(v);
+  }/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -559,18 +702,31 @@ String e1,e2;
   }
 /*@egen*/
 }
-
 //\u6fb9\u7248\u69d1\u9428\u52ed\u88ab\u9368\ufffd
-void type():
+String  type():
 {/*@bgen(jjtree) type */
   SimpleNode jjtn000 = new SimpleNode(JJTTYPE);
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+/*@egen*/
+  Token t;
+}
 {/*@bgen(jjtree) type */
   try {
 /*@egen*/
-  < INT >| < FLOAT >| < BOOL >| < CHAR > |< DOUBLE >/*@bgen(jjtree)*/
+  (      t = < INT >
+    | t =< FLOAT >
+    | t =< BOOL >
+    | t =< CHAR >
+    | t = < DOUBLE >)/*@bgen(jjtree)*/
+    {
+      jjtree.closeNodeScope(jjtn000, true);
+      jjtc000 = false;
+    }
+/*@egen*/
+    {
+      return t.image;
+    }/*@bgen(jjtree)*/
   } finally {
     if (jjtc000) {
       jjtree.closeNodeScope(jjtn000, true);
@@ -586,11 +742,14 @@ boolean jjtc000 = true;
 jjtree.openNodeScope(jjtn000);
 /*@egen*/
 String e1,e2;
+Variable v = new Variable();
 }
 {/*@bgen(jjtree) calStatement */
  try {
 /*@egen*/
- e1 = Identifier()  < EQU > e2 =  Expression()/*@bgen(jjtree)*/
+ e1 = Identifier(v)
+ < EQU >
+  e2 =  Expression()/*@bgen(jjtree)*/
    {
      jjtree.closeNodeScope(jjtn000, true);
      jjtc000 = false;
@@ -599,6 +758,8 @@ String e1,e2;
    {
      QTInfo info = new QTInfo("=", e2, "_", e1);
       qtList.addQTInfo(info);
+      v.image=e1;
+      tables.con(v);
   }/*@bgen(jjtree)*/
  } catch (Throwable jjte000) {
    if (jjtc000) {
@@ -627,11 +788,19 @@ void SwitchStatement():
   SimpleNode jjtn000 = new SimpleNode(JJTSWITCHSTATEMENT);
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+/*@egen*/
+  
+  String a;
+ }
 {/*@bgen(jjtree) SwitchStatement */
   try {
 /*@egen*/
-  "switch" "("  Identifier() ")" "{" CaseStatement()  "}"/*@bgen(jjtree)*/
+  {
+  switchTable = new SwitchTable();
+  }
+  "switch"
+  "("  a= Identifier(null) ")"
+   "{" CaseStatement(a)  "}"/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -654,22 +823,65 @@ void SwitchStatement():
 /*@egen*/ 
 }
 //case
-void CaseStatement():
+void CaseStatement(String str):
 {/*@bgen(jjtree) CaseStatement */
   SimpleNode jjtn000 = new SimpleNode(JJTCASESTATEMENT);
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
-/*@egen*/}
+/*@egen*/
+  ConditionValue c = new ConditionValue();
+  ConditionValue cbreak = new ConditionValue();
+  String s;
+  boolean haveBreak = false;
+  boolean haveCase = false;
+  Variable v = new Variable();
+}
 {/*@bgen(jjtree) CaseStatement */
 try {
 /*@egen*/
 (
-   "case" Identifier() ":"
-   (statementBlock())*
-   ("break" ";")?
+  (
+   {
+     haveCase = true;
+   }     "case" (s = Identifier(v) | s = Integer(v)) ":"
+   {
+      v.image = s;
+      tables.con(v);
+      switchTable.add(v);
+      v = new Variable();
+      QTInfo info1 = new QTInfo("J=", s, str,QTInfo.size+3);
+      qtList.addQTInfo(info1);
+      QTInfo info2 = new QTInfo("J", "_","_","F");
+      qtList.addQTInfo(info2);
+      c.mergeFalse(info2);
+   }
+ 	statement()
+   ( 
+     "break" ";"
+   {
+     QTInfo info3 = new QTInfo("J", "_", "_","F");
+     qtList.addQTInfo(info3);
+     cbreak.mergeFalse(info3);
+ 	 c.backpatchFalseChain(QTInfo.size +1);
+     c = new ConditionValue();
+    }
+    )?
+   )
  )*
- 
- ("default" ":" (statementBlock())* ("break" ";")? )?/*@bgen(jjtree)*/
+ 	(
+      "default" ":"
+      (statementBlock())*
+      ("break" ";")?
+    )?/*@bgen(jjtree)*/
+   {
+     jjtree.closeNodeScope(jjtn000, true);
+     jjtc000 = false;
+   }
+/*@egen*/
+   {
+     if(cbreak!=null)
+	 cbreak.backpatchFalseChain(QTInfo.size +1);
+   }/*@bgen(jjtree)*/
 } catch (Throwable jjte000) {
   if (jjtc000) {
     jjtree.clearNodeScope(jjtn000);
@@ -689,11 +901,10 @@ try {
     jjtree.closeNodeScope(jjtn000, true);
   }
 }
-/*@egen*/
-   
+/*@egen*/ 
 }
 //i++ ++i i+=
-void assignStatement():
+String assignStatement():
 {/*@bgen(jjtree) assignStatement */
 SimpleNode jjtn000 = new SimpleNode(JJTASSIGNSTATEMENT);
 boolean jjtc000 = true;
@@ -704,21 +915,15 @@ String e2;
 String op;
  }
 {/*@bgen(jjtree) assignStatement */
-  try {
+try {
 /*@egen*/
-  (
+(    (
     (
       "++" { op = "+";}
     | "--" { op = "-";}
     )
-   e1 =  < IDENTIFIER>/*@bgen(jjtree)*/
+   e1 =  < IDENTIFIER>
    {
-     jjtree.closeNodeScope(jjtn000, true);
-     jjtc000 = false;
-   }
-/*@egen*/
-   {
-
       qtList.addQTInfo(new QTInfo(op, e1.image, "1", e1.image));
     }
   )
@@ -726,48 +931,48 @@ String op;
   (
    e1=   < IDENTIFIER>
     (
-      (op = AssignRop() e2= Expression())/*@bgen(jjtree)*/
-      {
-        jjtree.closeNodeScope(jjtn000, true);
-        jjtc000 = false;
-      }
-/*@egen*/
+      (op = AssignRop()
+       e2= Expression())
       {
  		qtList.addQTInfo(new QTInfo(op, e1.image, e2, e1.image));
       }
       |(
          "++" { op = "+";}
         |"--" { op = "-";}
-       )/*@bgen(jjtree)*/
-        {
-          jjtree.closeNodeScope(jjtn000, true);
-          jjtc000 = false;
-        }
-/*@egen*/
+       )
         {
           qtList.addQTInfo(new QTInfo(op, e1.image, "1", e1.image));
         }
     )
-  )/*@bgen(jjtree)*/
-  } catch (Throwable jjte000) {
-    if (jjtc000) {
-      jjtree.clearNodeScope(jjtn000);
-      jjtc000 = false;
-    } else {
-      jjtree.popNode();
-    }
-    if (jjte000 instanceof RuntimeException) {
-      throw (RuntimeException)jjte000;
-    }
-    if (jjte000 instanceof ParseException) {
-      throw (ParseException)jjte000;
-    }
-    throw (Error)jjte000;
-  } finally {
-    if (jjtc000) {
-      jjtree.closeNodeScope(jjtn000, true);
-    }
+  )
+)/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
   }
+/*@egen*/
+  {
+    return e1.image;
+  }/*@bgen(jjtree)*/
+} catch (Throwable jjte000) {
+  if (jjtc000) {
+    jjtree.clearNodeScope(jjtn000);
+    jjtc000 = false;
+  } else {
+    jjtree.popNode();
+  }
+  if (jjte000 instanceof RuntimeException) {
+    throw (RuntimeException)jjte000;
+  }
+  if (jjte000 instanceof ParseException) {
+    throw (ParseException)jjte000;
+  }
+  throw (Error)jjte000;
+} finally {
+  if (jjtc000) {
+    jjtree.closeNodeScope(jjtn000, true);
+  }
+}
 /*@egen*/
 }
 //\u7ed7\ufe40\u5f7f
@@ -812,6 +1017,10 @@ void ForStatement():
   boolean jjtc000 = true;
   jjtree.openNodeScope(jjtn000);
 /*@egen*/
+  ConditionValue c = null;
+  String e1;
+  int a1=-1,a2=-1;
+  int t;
 }
 {/*@bgen(jjtree) ForStatement */
   try {
@@ -819,16 +1028,49 @@ void ForStatement():
   "for" "("
   (	
     stateStatement()
-  |  calStatement()
+  | calStatement()
   )*
   ";"
-(condition())?
+(
+  c = condition()
+  )?
   ";"
+  
+  {
+    a2 = QTInfo.size-1;
+    a1 =  QTInfo.size+1;
+    if(c==null)
+    qtList.addQTInfo(new QTInfo("J1", "_", "_", "_"));
+    t = QTInfo.size-1;
+  }
     (
-      [","] assignStatement()
+      [","]
+      (
+          LOOKAHEAD(3) assignStatement()
+        | LOOKAHEAD(3) calStatement() )
     )*
   ")"
+  { 
+    if(c!=null)
+       c.backpatchTrueChain(QTInfo.size+2);
+    else {
+       a1++;
+       a2=a2+2;
+       qtList.QTList.get(t).setResult(QTInfo.size+2);
+    }
+    qtList.addQTInfo(new QTInfo("J2", "_", "_", a2));
+  }
   statement()/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
+/*@egen*/
+  {
+    if(c!=null) 
+      c.backpatchFalseChain(QTInfo.size + 2);
+    qtList.addQTInfo(new QTInfo("J3", "_", "_", a1));
+  }/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -865,57 +1107,22 @@ void ifStatement():
 {/*@bgen(jjtree) ifStatement */
   try {
 /*@egen*/
-  < IF>   < SBRACL >
+  < IF>  
+  < SBRACL >
  c1 = condition()
    {
     c1.backpatchTrueChain(QTInfo.size + 1);
   }
     < SBRACR >
       statement()
-   (
-     LOOKAHEAD(1)
-     {
-      QTInfo info = new QTInfo("J", "_", "_", "T");
-      qtList.addQTInfo(info);
-      c3.mergeTrue(info);
-      }
-	"else if"
-	< SBRACL >
-	{
-	  c1.backpatchFalseChain(QTInfo.size + 1);
-	}
-  	c2 = condition()
-   {
-    c2.backpatchTrueChain(QTInfo.size + 1);
-    c1 = c2;
+  {
+    c1.backpatchFalseChain(QTInfo.size +1);
   }
-    < SBRACR >
-     statement()
-   )*
     (
-     LOOKAHEAD(1)
-      {
-      QTInfo info = new QTInfo("J", "_", "_", "T");
-      qtList.addQTInfo(info);
-      c3.mergeTrue(info);
-      }
+     LOOKAHEAD(1)            	
 	"else"
-	{
-  c1.backpatchFalseChain(QTInfo.size + 1);
-	}
      statement()
    )?/*@bgen(jjtree)*/
-      {
-        jjtree.closeNodeScope(jjtn000, true);
-        jjtc000 = false;
-      }
-/*@egen*/
-      {
-       if(c3.trueChain.size()!=0)
-       c3.backpatchTrueChain(QTInfo.size + 1);
-       else
-         c1.backpatchFalseChain(QTInfo.size + 1);
-      }/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
     if (jjtc000) {
       jjtree.clearNodeScope(jjtn000);
@@ -998,9 +1205,11 @@ ConditionValue OrBoolExpression():
   }
   (
     "||"
+    {
+     c1.backpatchFalseChain(QTInfo.size+1);
+    }
    c2 = AndBooleanExpression()
-   {
-     c1.backpatchFalseChain(QTInfo.size + 1);
+   { 
       c2.mergeTrue(c1);
       c1 = c2;
    }
@@ -1053,9 +1262,11 @@ ConditionValue AndBooleanExpression():
   }
   (
   "&&"
+  {
+     c1.backpatchTrueChain(QTInfo.size + 1);
+  }
   c2 = NoBooleanExpression()
     {
-     c1.backpatchTrueChain(QTInfo.size + 1);
       c2.mergeFalse(c1);
       c1 = c2;
    }
@@ -1103,7 +1314,9 @@ ConditionValue  NoBooleanExpression():
 {/*@bgen(jjtree) NoBooleanExpression */
   try {
 /*@egen*/
-  ("!" { flag = false; })?
+  ("!"
+  { flag = false; }
+  )?
   c1 = BoolExpression()/*@bgen(jjtree)*/
   {
     jjtree.closeNodeScope(jjtn000, true);
@@ -1170,10 +1383,10 @@ ConditionValue  BoolExpression():
       QTInfo info1 = new QTInfo("J" + op, e1, e2, "T");
       qtList.addQTInfo(info1);
       c.mergeTrue(info1);
-       QTInfo info2 = new QTInfo("J", "_", "_", "F");
-    qtList.addQTInfo(info2);
-    c.mergeFalse(info2);
-    return c;
+      QTInfo info2 = new QTInfo("J", "_", "_", "F");
+      qtList.addQTInfo(info2);
+      c.mergeFalse(info2);
+      return c;
     }
   )?/*@bgen(jjtree)*/
   {
@@ -1185,10 +1398,10 @@ ConditionValue  BoolExpression():
       QTInfo info1 = new QTInfo("Jnz", e1,"_", "T");
       qtList.addQTInfo(info1);
       c.mergeTrue(info1);
-       QTInfo info2 = new QTInfo("J", "_", "_", "F");
-    qtList.addQTInfo(info2);
-    c.mergeFalse(info2);
-    return c;
+      QTInfo info2 = new QTInfo("J", "_", "_", "F");
+      qtList.addQTInfo(info2);
+      c.mergeFalse(info2);
+      return c;
     }/*@bgen(jjtree)*/
  } catch (Throwable jjte000) {
    if (jjtc000) {
@@ -1254,9 +1467,9 @@ void WhileStatement1():
   int quad;
 }
 {/*@bgen(jjtree) WhileStatement1 */
-try {
+ try {
 /*@egen*/
-< WHILE >
+ < WHILE >
  < SBRACL >
  {
     quad = QTInfo.size + 1;
@@ -1266,32 +1479,35 @@ try {
    chain.backpatchTrueChain(QTInfo.size + 1);
   }
   < SBRACR >
-  < BBRACL >
-   statement()
-   {
+   statement()/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
+/*@egen*/
+  {
     qtList.addQTInfo(new QTInfo("J", "_", "_", quad));
     chain.backpatchFalseChain(QTInfo.size + 1);
-  }
-   < BBRACR >/*@bgen(jjtree)*/
-} catch (Throwable jjte000) {
-  if (jjtc000) {
-    jjtree.clearNodeScope(jjtn000);
-    jjtc000 = false;
-  } else {
-    jjtree.popNode();
-  }
-  if (jjte000 instanceof RuntimeException) {
-    throw (RuntimeException)jjte000;
-  }
-  if (jjte000 instanceof ParseException) {
-    throw (ParseException)jjte000;
-  }
-  throw (Error)jjte000;
-} finally {
-  if (jjtc000) {
-    jjtree.closeNodeScope(jjtn000, true);
-  }
-}
+  }/*@bgen(jjtree)*/
+ } catch (Throwable jjte000) {
+   if (jjtc000) {
+     jjtree.clearNodeScope(jjtn000);
+     jjtc000 = false;
+   } else {
+     jjtree.popNode();
+   }
+   if (jjte000 instanceof RuntimeException) {
+     throw (RuntimeException)jjte000;
+   }
+   if (jjte000 instanceof ParseException) {
+     throw (ParseException)jjte000;
+   }
+   throw (Error)jjte000;
+ } finally {
+   if (jjtc000) {
+     jjtree.closeNodeScope(jjtn000, true);
+   }
+ }
 /*@egen*/
 }
 //do while
@@ -1307,24 +1523,17 @@ void WhileStatement2():
 {/*@bgen(jjtree) WhileStatement2 */
   try {
 /*@egen*/
-  "do"
-    
+  "do"  
  {
     quad = QTInfo.size + 1;
   }
    statement()
-   
-  
-< WHILE >
+ < WHILE >
  < SBRACL >
-
  chain = condition()
  {
-   
-//    quad
     chain.backpatchFalseChain(QTInfo.size + 1);
-  
-   chain.backpatchTrueChain(quad);
+    chain.backpatchTrueChain(quad);
   }
   < SBRACR >/*@bgen(jjtree)*/
   } catch (Throwable jjte000) {
@@ -1347,7 +1556,6 @@ void WhileStatement2():
     }
   }
 /*@egen*/
-
 }
 //\u741b\u3128\u63ea\u5bee\ufffd
 String Expression() :
@@ -1522,22 +1730,26 @@ String UnaryExpression() :
 /*@egen*/
 	String str = null;
 	Token t = null;
+	Variable v = new Variable();
 }
 {/*@bgen(jjtree) UnaryExpression */
  try {
 /*@egen*/
  (
     "(" str = Expression() ")"
-| str =  Identifier()
-| str =  Integer()
-)/*@bgen(jjtree)*/
- {
-   jjtree.closeNodeScope(jjtn000, true);
-   jjtc000 = false;
- }
+    | str =  Identifier(v)
+	{
+  		v.image = str;
+ 	 	tables.con(v);
+	}
+	| str =  Integer(null)
+  )/*@bgen(jjtree)*/
+  {
+    jjtree.closeNodeScope(jjtn000, true);
+    jjtc000 = false;
+  }
 /*@egen*/
-
- {
+  {
     return str;
   }/*@bgen(jjtree)*/
  } catch (Throwable jjte000) {
@@ -1562,7 +1774,7 @@ String UnaryExpression() :
 /*@egen*/
 }
 
-String Identifier() :
+String Identifier(Variable v) :
 {/*@bgen(jjtree) Identifier */
         SimpleNode jjtn000 = new SimpleNode(JJTIDENTIFIER);
         boolean jjtc000 = true;
@@ -1580,6 +1792,9 @@ String Identifier() :
  }
 /*@egen*/
  {
+   if(v!=null) { 
+   	  v.line = t.beginLine;
+   v.col = t.beginColumn; }
    return t.image;
  }/*@bgen(jjtree)*/
  } finally {
@@ -1590,7 +1805,7 @@ String Identifier() :
 /*@egen*/
 }
 
-String  Integer() :
+String  Integer(Variable v) :
 {/*@bgen(jjtree) Integer */
   SimpleNode jjtn000 = new SimpleNode(JJTINTEGER);
   boolean jjtc000 = true;
@@ -1608,6 +1823,9 @@ String  Integer() :
   }
 /*@egen*/
   {
+    if(v!=null) { 
+       v.line = t.beginLine;
+       v.col = t.beginColumn; }
     return t.image;
   }/*@bgen(jjtree)*/
  } finally {

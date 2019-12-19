@@ -1,5 +1,5 @@
 void as(int a){
-
+a=1;
 }
 void main(){
 	int a=5,b=2;

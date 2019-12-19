@@ -18,11 +18,13 @@ public class QTList {
 
 	public QTInfo get(int index) {
 		return (QTInfo) QTList.get(index);
+		
 	}
 
 	public QTInfo remove(int index) {
 		return QTList.remove(index - 1);
 	}
+	
 
 	public void clear() {
 		QTList.clear();
@@ -32,9 +34,8 @@ public class QTList {
 	public void printQTTable() {
 		for(QTInfo info : QTList) 
 			System.out.println(info.toString());
-	}
+	}	
 	
-
 	public String getMes() {
 		String str = "";
 		for(QTInfo info : QTList) 

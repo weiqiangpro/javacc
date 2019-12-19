@@ -1,14 +1,18 @@
 package util;
 
-//¶¨ÒåËÄÔªÊ½µÄĞÅÏ¢
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÔªÊ½ï¿½ï¿½ï¿½ï¿½Ï¢
+/**
+ * @author é­å°å¼º
+ *
+ */
 public class QTInfo {
 
-	public static int size = 0; // ËÄÔªÊ½È«¾Ö¸öÊı
-	private int innerId; // µ±Ç°ËÄÔªÊ½ID
-	private String operator;
-	private String arg1;
-	private String arg2;
-	private String result;
+	public static int size = 0; // ï¿½ï¿½ÔªÊ½È«ï¿½Ö¸ï¿½ï¿½ï¿½
+	public int innerId; // ï¿½ï¿½Ç°ï¿½ï¿½ÔªÊ½ID
+	public String operator;
+	public String arg1;
+	public String arg2;
+	public String result;
 
 	public QTInfo(String operator, String arg1, String arg2, String result) {
 		super();
@@ -22,7 +26,13 @@ public class QTInfo {
 	public QTInfo(String operator, String arg1, String arg2, int result) {
 		this(operator, arg1, arg2, result + "");
 	}
-
+	public QTInfo(int innerId,String operator, String arg1, String arg2, String result) {
+		this.innerId = ++size;
+		this.operator = operator;
+		this.arg1 = arg1;
+		this.arg2 = arg2;
+		this.result = result;
+	}
 	public String getOperator() {
 		return this.operator;
 	}
