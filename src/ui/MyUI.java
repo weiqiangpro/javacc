@@ -347,6 +347,6 @@ public class MyUI extends JFrame {
 		option.setForeground(Color.BLUE);
 
 		JOptionPane.showMessageDialog(null, mes, title, JOptionPane.INFORMATION_MESSAGE);
-		//new Thread(() -> JOptionPane.showMessageDialog(null, mes, title, JOptionPane.INFORMATION_MESSAGE)).start();
+
 	}
 }
